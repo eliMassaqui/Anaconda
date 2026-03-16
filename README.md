@@ -1,274 +1,111 @@
-# 🐍 Anaconda / Conda Environment Guide
+# 📂 Documentação do Ambiente: gestos
 
-Guia prático e profissional para **gestão de ambientes Python utilizando Anaconda/Conda**. Este documento descreve boas práticas utilizadas em projetos reais para evitar conflitos de dependências, manter ambientes reprodutíveis e facilitar a colaboração entre desenvolvedores.
-
----
-
-# 📚 Índice
-
-* Visão Geral
-* Estrutura recomendada de ambientes
-* Criação de ambientes
-* Ativação e desativação
-* Instalação de bibliotecas
-* Manutenção do ambiente
-* Integração com VS Code
-* Exportação e reprodução de ambientes
-* Boas práticas profissionais
+Este documento detalha a configuração, instalação e uso do ambiente de desenvolvimento focado em **Visão Computacional Aplicada** e **Integração com Hardware**.
 
 ---
 
-# 🔎 Visão Geral
+## 📋 Visão Geral
 
-O **Conda** é um gerenciador de ambientes e pacotes amplamente utilizado no ecossistema Python. Ele permite criar ambientes isolados onde cada projeto possui:
-
-* sua própria versão do Python
-* suas próprias bibliotecas
-* dependências controladas
-
-Isso evita problemas comuns como:
-
-* conflitos de versões
-* atualizações que quebram projetos antigos
-* dificuldade em reproduzir ambientes em outras máquinas
+O ambiente **gestos** foi projetado para rodar modelos de detecção de pontos de referência (*landmarks*) em tempo real via **MediaPipe**, com processamento de imagem otimizado pelo **OpenCV** e capacidade de resposta física através de protocolos **Serial**.
 
 ---
 
-# 🧱 Estrutura Recomendada de Ambientes
+## 🛠️ Configuração do Sistema
 
-Uma prática comum em projetos profissionais é:
+### Pré‑requisitos
 
-```
-python-projects
-│
-├── vision_project
-│   └── environment.yml
-│
-├── robotics_simulation
-│   └── environment.yml
-│
-└── data_analysis
-    └── environment.yml
-```
-
-Cada projeto possui seu **próprio ambiente Conda**.
-
-Nunca utilize o ambiente **base** para desenvolvimento de projetos.
+* Anaconda ou Miniconda instalado
+* Python **3.10.19** (versão escolhida pela estabilidade com pacotes de ML)
+* Câmera funcional para testes de visão computacional
 
 ---
 
-# ⚙️ Criação de Ambientes
+## ⚙️ Instalação Passo a Passo
 
-Criar um novo ambiente com uma versão específica do Python:
+Para replicar o ambiente exatamente como configurado:
+
+### 1. Criação do Container
 
 ```bash
-conda create --name meu_projeto python=3.10
+conda create -n gestos python=3.10.19 -y
+conda activate gestos
 ```
 
-Exemplo real:
+### 2. Dependências de Processamento e ML
 
 ```bash
-conda create --name vision_env python=3.10
+pip install numpy==1.26.4 scipy==1.15.3 jax==0.6.2 jaxlib==0.6.2
+```
+
+### 3. Dependências de Visão e Interface
+
+```bash
+pip install opencv-python==4.12.0.88 opencv-contrib-python==4.11.0.86 mediapipe==0.10.20
+```
+
+### 4. Hardware e Utilitários
+
+```bash
+pip install sounddevice==0.5.3 pyserial==3.5 matplotlib==3.10.8 pillow==12.1.0
 ```
 
 ---
 
-# ▶️ Ativação do Ambiente
+## 🏗️ Arquitetura do Código de Exemplo
 
-```bash
-conda activate meu_projeto
-```
+O script de teste básico segue o fluxo clássico de um pipeline de **Visão Computacional em tempo real**:
 
-Após ativado, todos os pacotes instalados serão adicionados **somente neste ambiente**.
+1. **Entrada**
+   Captura de frames utilizando `cv2.VideoCapture`.
 
----
+2. **Pré‑processamento**
+   Conversão de cores de **BGR → RGB**.
 
-# ⏹️ Desativar Ambiente
+3. **Inferência**
+   Processamento pelo modelo `mp.solutions.hands`.
 
-```bash
-conda deactivate
-```
+4. **Saída de Dados**
+   Coordenadas normalizadas `(x, y, z)` dos **21 pontos da mão**.
 
----
-
-# 📋 Listar Ambientes Existentes
-
-```bash
-conda env list
-```
-
-ou
-
-```bash
-conda info --envs
-```
-
-Saída típica:
-
-```
-base                  *  /anaconda3
-vision_env               /anaconda3/envs/vision_env
-robotics_env             /anaconda3/envs/robotics_env
-```
+5. **Ação (Opcional)**
+   Envio de comandos via `serial.Serial` para microcontroladores.
 
 ---
 
-# 📦 Instalação de Bibliotecas
+## 🚨 Notas de Manutenção (Realismo Técnico)
 
-Após ativar o ambiente, você pode instalar pacotes.
+### Conflitos de Versão
 
-### Instalar com Conda
+O **MediaPipe** é sensível a versões do `protobuf`. Caso ocorra erro de importação, evite atualizar o pacote manualmente sem validar compatibilidade com **jax**.
 
-```bash
-conda install opencv
+### Performance
+
+Para maior fluidez, mantenha:
+
+```python
+static_image_mode=False
 ```
 
-### Instalar múltiplos pacotes
+Isso permite que o MediaPipe utilize **tracking entre frames**, evitando detecção completa a cada ciclo.
+
+### Comunicação Serial
+
+O `pyserial` bloqueia a porta **COM** enquanto o script está rodando.
+
+Sempre finalize o script antes de tentar enviar um novo firmware para o **Arduino**.
+
+---
+
+## 🚀 Como Executar
+
+Sempre ative o ambiente antes de rodar qualquer script:
 
 ```bash
-conda install numpy scipy matplotlib
-```
-
-### Instalar via pip
-
-Caso o pacote não esteja disponível no Conda:
-
-```bash
-pip install mediapipe
+conda activate gestos
+python seu_script.py
 ```
 
 ---
 
-# ❌ Remover Pacotes
-
-```bash
-conda remove nome_do_pacote
-```
-
-Exemplo:
-
-```bash
-conda remove opencv
-```
-
----
-
-# 🛠️ Comandos de Manutenção
-
-### Listar pacotes instalados
-
-```bash
-conda list
-```
-
-### Atualizar Conda
-
-```bash
-conda update conda
-```
-
-### Atualizar todos os pacotes do ambiente
-
-```bash
-conda update --all
-```
-
----
-
-# 🗑️ Remover um Ambiente
-
-Se um ambiente não for mais necessário:
-
-```bash
-conda remove --name meu_projeto --all
-```
-
----
-
-# 🧑‍💻 Integração com VS Code
-
-Para utilizar corretamente o ambiente dentro do VS Code:
-
-1. Abra um arquivo `.py`
-2. Clique na versão do **Python no canto inferior direito**
-3. Selecione o interpretador correspondente ao ambiente Conda
-
-Exemplo:
-
-```
-Python 3.10 (vision_env)
-```
-
-Isso garante que:
-
-* o terminal use o ambiente correto
-* as bibliotecas do projeto sejam reconhecidas
-* o linting e autocomplete funcionem corretamente
-
----
-
-# 📤 Exportar Ambiente
-
-Para compartilhar ou versionar dependências do projeto:
-
-```bash
-conda env export > environment.yml
-```
-
-Isso gera um arquivo com todas as dependências instaladas.
-
----
-
-# 📥 Recriar Ambiente em Outra Máquina
-
-```bash
-conda env create -f environment.yml
-```
-
-Esse comando recria **exatamente o mesmo ambiente**.
-
----
-
-# 🧠 Boas Práticas Profissionais
-
-✔ Nunca desenvolver no ambiente `base`
-
-✔ Criar um ambiente por projeto
-
-✔ Fixar versões críticas de bibliotecas
-
-✔ Versionar `environment.yml` no repositório
-
-✔ Evitar misturar `conda` e `pip` sem necessidade
-
-✔ Documentar dependências no README
-
----
-
-# 🚀 Exemplos de Áreas onde Conda é Muito Utilizado
-
-* Visão Computacional
-* Machine Learning
-* Robótica
-* Ciência de Dados
-* Interfaces gráficas com PyQt
-
-Bibliotecas comuns nesses ambientes:
-
-* OpenCV
-* MediaPipe
-* PyQt
-* NumPy
-* SciPy
-
----
-
-# 📄 Licença
-
-Este guia pode ser utilizado livremente em projetos educacionais ou profissionais.
-
----
-
-# 🤝 Contribuição
-
-Sugestões e melhorias são bem-vindas. Abra uma **issue** ou **pull request**.
+**Ambiente mantido por:** UMALAB
+**Última atualização:** Março de 2026
